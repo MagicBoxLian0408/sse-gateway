@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: sse-gateway-local
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  config:
+    import:
+      - file:services/sse-gateway/env/local.env[.properties]
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: ${SERVER_PORT}
+
+security:
+  trusted:
+    ips:
+      - 127.0.0.1
+      - 0:0:0:0:0:0:0:1
