@@ -1,0 +1,74 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  check-title:
+    name: PR 제목 컨벤션 검사
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title convention
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          PATTERN="^(feat|fix|refactor|test)(\/[0-9]+|\(.+\))?(\s*::|:) .{1,}"
+
+          if [[ ! "$PR_TITLE" =~ $PATTERN ]]; then
+            echo "❌ PR 제목이 컨벤션에 맞지 않습니다."
+            echo ""
+            echo "현재 제목: $PR_TITLE"
+            echo ""
+            echo "올바른 형식: <type>(<scope>): <subject>"
+            echo "예시:"
+            echo "  feat(auth): 소셜 로그인 추가"
+            echo "  fix(order): 주문 상태 동기화 버그 수정"
+            echo "  refactor(user): UserService 레이어 분리"
+            echo "  test(payment): 결제 서비스 단위 테스트 추가"
+            echo ""
+            echo "허용 type: feat | fix | refactor | test"
+            exit 1
+          fi
+
+          echo "✅ PR 제목 컨벤션 통과: $PR_TITLE"
+
+  check-description:
+    name: PR 설명 템플릿 검사
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          export LC_ALL=C.UTF-8
+          export LANG=C.UTF-8
+
+          REQUIRED_SECTIONS=(
+            "관련 이슈"
+            "변경 사항 요약"
+            "테스트 체크리스트"
+          )
+
+          FAILED=0
+
+          if [[ -z "${PR_BODY// }" ]]; then
+            echo "❌ PR 설명이 비어 있습니다. 템플릿을 작성해주세요."
+            exit 1
+          fi
+
+          for SECTION in "${REQUIRED_SECTIONS[@]}"; do
+            if [[ "$PR_BODY" != *"$SECTION"* ]]; then
+              echo "❌ 누락된 섹션: $SECTION"
+              FAILED=1
+            fi
+          done
+
+          if [[ $FAILED -eq 1 ]]; then
+            echo ""
+            echo "PR 템플릿의 필수 섹션이 누락되었습니다."
+            echo "pull_request_template.md 를 참고해 작성해주세요."
+            exit 1
+          fi
+
+          echo "✅ PR 설명 템플릿 검사 통과"
