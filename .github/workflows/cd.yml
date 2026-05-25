@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/lian2945/magicbox-sse-gateway
+  IMAGE_NAME: ghcr.io/magicboxlian0408/sse-gateway
 
 jobs:
   build-and-push:
