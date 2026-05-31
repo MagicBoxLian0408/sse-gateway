@@ -47,31 +47,34 @@ public class RedisPubSubAdapter {
         String notificationChannel = NOTIFICATION_CHANNEL_PREFIX + userId.value();
         String logoutChannel = LOGOUT_CHANNEL_PREFIX + userId.value();
 
+        log.info("[REDIS-PUBSUB] 채널 구독 시작 userId={} channels=[{}, {}]",
+                userId.value(), notificationChannel, logoutChannel);
+
         Disposable subscription = listenerContainer
                 .receive(ChannelTopic.of(notificationChannel), ChannelTopic.of(logoutChannel))
                 .flatMap(message -> handleMessage(userId, message))
                 .subscribe(
                         unused -> {},
-                        error -> log.error("Redis 메시지 처리 오류 userId={}", userId.value(), error)
+                        error -> log.error("[REDIS-PUBSUB] 메시지 처리 오류 userId={}", userId.value(), error)
                 );
 
         subscriptions.put(userId.value(), subscription);
-        log.debug("Redis 채널 구독 등록 userId={}", userId.value());
     }
 
     public void unsubscribe(UserId userId) {
         Disposable subscription = subscriptions.remove(userId.value());
         if (subscription != null && !subscription.isDisposed()) {
             subscription.dispose();
-            log.debug("Redis 채널 구독 해제 userId={}", userId.value());
+            log.info("[REDIS-PUBSUB] 채널 구독 해제 userId={}", userId.value());
         }
     }
 
     public Mono<Long> publishNotification(UserId userId, SseNotificationResponse payload) {
         String channel = NOTIFICATION_CHANNEL_PREFIX + userId.value();
         String message = serialize(payload);
+        log.info("[REDIS-PUBSUB] PUBLISH 시도 userId={} channel={}", userId.value(), channel);
         return redisTemplate.convertAndSend(channel, message)
-                .doOnNext(count -> log.debug("Redis 알림 발행 userId={} channel={} receivers={}", userId.value(), channel, count));
+                .doOnNext(count -> log.info("[REDIS-PUBSUB] PUBLISH 완료 userId={} channel={} receivers={}", userId.value(), channel, count));
     }
 
     public Mono<Long> publishLogout(UserId userId) {
@@ -82,10 +85,11 @@ public class RedisPubSubAdapter {
 
     private Mono<Void> handleMessage(UserId userId, ReactiveSubscription.Message<String, String> message) {
         String channel = message.getChannel();
+        log.info("[REDIS-PUBSUB] 메시지 수신 userId={} channel={}", userId.value(), channel);
 
         if (channel.startsWith(LOGOUT_CHANNEL_PREFIX)) {
             if (sinkRegistry.contains(userId)) {
-                log.debug("로그아웃 메시지 수신, Sink 종료 userId={}", userId.value());
+                log.info("[REDIS-PUBSUB] 로그아웃 메시지 수신 → Sink 종료 userId={}", userId.value());
                 sinkRegistry.remove(userId);
             }
             return Mono.empty();
@@ -93,11 +97,12 @@ public class RedisPubSubAdapter {
 
         if (channel.startsWith(NOTIFICATION_CHANNEL_PREFIX)) {
             if (!sinkRegistry.contains(userId)) {
+                log.warn("[REDIS-PUBSUB] Sink 없음 → 메시지 DROP userId={} (SSE 미연결 또는 이미 완료)", userId.value());
                 return Mono.empty();
             }
             SseNotificationResponse payload = deserialize(message.getMessage());
             if (payload != null) {
-                log.debug("알림 메시지 수신, Sink emit userId={}", userId.value());
+                log.info("[REDIS-PUBSUB] Sink emit 시도 userId={}", userId.value());
                 sinkRegistry.emit(userId, payload);
             }
             return Mono.empty();

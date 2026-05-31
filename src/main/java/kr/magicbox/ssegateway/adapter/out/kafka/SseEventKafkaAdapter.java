@@ -18,11 +18,11 @@ public class SseEventKafkaAdapter {
 
     public void publishConnected(UserId userId) {
         kafkaTemplate.send(CONNECTED_TOPIC, String.valueOf(userId.value()), "");
-        log.debug("sse.connected 발행 userId={}", userId.value());
+        log.info("[KAFKA] sse.connected 발행 userId={}", userId.value());
     }
 
     public void publishDisconnected(UserId userId) {
         kafkaTemplate.send(DISCONNECTED_TOPIC, String.valueOf(userId.value()), "");
-        log.debug("sse.disconnected 발행 userId={}", userId.value());
+        log.info("[KAFKA] sse.disconnected 발행 userId={}", userId.value());
     }
 }
