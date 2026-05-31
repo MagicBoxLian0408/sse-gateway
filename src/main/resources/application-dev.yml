@@ -17,7 +17,3 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
-security:
-  trusted:
-    ips:
-      - ${TRUSTED_IP_GATEWAY}
