@@ -1,9 +1,7 @@
 package kr.magicbox.ssegateway.adapter.in.security.filter;
 
-import kr.magicbox.ssegateway.adapter.in.security.properties.TrustedIpProperties;
 import kr.magicbox.ssegateway.domain.vo.UserId;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
@@ -13,24 +11,13 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
-import java.net.InetSocketAddress;
-
 @Component
-@RequiredArgsConstructor
 public class UserInfoExtractFilter implements WebFilter {
-
-    private final TrustedIpProperties trustedIpProperties;
 
     @NonNull
     @Override
     public Mono<Void> filter(@NonNull ServerWebExchange exchange, @NonNull WebFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
-        InetSocketAddress remoteAddress = request.getRemoteAddress();
-
-        if (remoteAddress == null) return chain.filter(exchange);
-
-        String clientIp = remoteAddress.getAddress().getHostAddress();
-        if (!trustedIpProperties.getIps().contains(clientIp)) return chain.filter(exchange);
 
         String userIdHeader = request.getHeaders().getFirst("X-User-Id");
         if (userIdHeader == null || !isValidUserId(userIdHeader)) return chain.filter(exchange);
