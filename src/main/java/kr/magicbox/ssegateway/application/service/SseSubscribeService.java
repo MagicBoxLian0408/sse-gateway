@@ -35,6 +35,13 @@ public class SseSubscribeService implements SubscribeSseUseCase {
         redisPubSubAdapter.subscribe(userId);
         sseEventKafkaAdapter.publishConnected(userId);
 
+        Flux<ServerSentEvent<SseNotificationResponse>> connectedEvent = Flux.just(
+                ServerSentEvent.<SseNotificationResponse>builder()
+                        .event("connected")
+                        .comment("SSE connection established")
+                        .build()
+        );
+
         Flux<ServerSentEvent<SseNotificationResponse>> notificationStream = sink.asMono()
                 .doOnNext(payload -> log.info("[SSE-SUBSCRIBE] notification 전달 userId={} purchaseToken={}",
                         userId.value(), payload.purchaseToken()))
@@ -57,7 +64,10 @@ public class SseSubscribeService implements SubscribeSseUseCase {
                         .comment("keep-alive")
                         .build());
 
-        return Flux.merge(notificationStream, heartbeat)
+        return Flux.concat(
+                        connectedEvent,
+                        Flux.merge(notificationStream, heartbeat)
+                )
                 .takeUntilOther(Mono.delay(Duration.ofMinutes(MAX_CONNECTION_MINUTES)));
     }
 }
