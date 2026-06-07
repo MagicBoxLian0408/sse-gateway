@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
 @RestController
-@RequestMapping("/sse")
+
 @RequiredArgsConstructor
 public class SseQueryController {
 
