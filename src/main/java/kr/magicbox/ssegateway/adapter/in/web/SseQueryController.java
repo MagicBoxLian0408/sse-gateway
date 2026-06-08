@@ -18,7 +18,7 @@ public class SseQueryController {
 
     private final SubscribeSseUseCase subscribeSseUseCase;
 
-    @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<SseNotificationResponse>> subscribe(
             @AuthenticationPrincipal UserId userId
     ) {
