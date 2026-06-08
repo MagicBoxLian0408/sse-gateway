@@ -20,15 +20,13 @@ public class PurchaseTokenKafkaListener {
     @KafkaListener(topics = "sse.purchase-token-issued", groupId = "sse-gateway-service")
     public void handlePurchaseTokenIssued(ConsumerRecord<String, PurchaseTokenIssuedKafkaEvent> record) {
         PurchaseTokenIssuedKafkaEvent event = record.value();
-        log.info("[KAFKA→SSE] purchase token 이벤트 수신 releaseId={} userId={}", event.releaseId(), event.userId());
+
+        log.debug("purchase token 발급 이벤트 수신 releaseId={} userId={}", event.releaseId(), event.userId());
 
         SseNotificationResponse payload = SseNotificationResponse.builder()
                 .purchaseToken(event.purchaseToken())
                 .build();
 
-        redisPubSubAdapter.publishNotification(UserId.of(event.userId()), payload)
-                .doOnNext(count -> log.info("[KAFKA→SSE] Redis PUBLISH 완료 userId={} receivers={}", event.userId(), count))
-                .doOnError(e -> log.error("[KAFKA→SSE] Redis PUBLISH 실패 userId={}", event.userId(), e))
-                .subscribe();
+        redisPubSubAdapter.publishNotification(UserId.of(event.userId()), payload).subscribe();
     }
 }

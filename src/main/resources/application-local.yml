@@ -12,10 +12,16 @@ spring:
       port: ${REDIS_PORT}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    listener:
+      missing-topics-fatal: false
     consumer:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.trusted.packages: "kr.magicbox.ssegateway.adapter.in.kafka.event"
+        spring.json.value.default.type: kr.magicbox.ssegateway.adapter.in.kafka.event.PurchaseTokenIssuedKafkaEvent
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -23,3 +29,8 @@ spring:
 server:
   port: ${SERVER_PORT}
 
+security:
+  trusted:
+    ips:
+      - 127.0.0.1
+      - 0:0:0:0:0:0:0:1
