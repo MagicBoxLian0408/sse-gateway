@@ -16,7 +16,7 @@ spring:
       properties:
         spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
         spring.json.trusted.packages: "kr.magicbox.ssegateway.adapter.in.kafka.event"
-        spring.json.value.default.type: kr.magicbox.ssegateway.adapter.in.kafka.event.PurchaseTokenIssuedKafkaEvent
+        spring.json.type.mapping: purchase-token-issued:kr.magicbox.ssegateway.adapter.in.kafka.event.PurchaseTokenIssuedKafkaEvent
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
