@@ -63,5 +63,9 @@ jobs:
           sed -i "s|image: ${{ env.IMAGE_NAME }}:.*|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|" sse-gateway/deployment.yaml
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-          git commit -am "chore(sse-gateway): update image to ${{ github.sha }}"
-          git push
+          git diff --quiet && git diff --staged --quiet || (
+            git commit -am "chore(sse-gateway): update image to ${{ github.sha }}"
+            for i in 1 2 3; do
+              git push && break || (git pull --rebase && sleep 3)
+            done
+          )

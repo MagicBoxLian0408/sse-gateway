@@ -1,6 +1,5 @@
 package kr.magicbox.ssegateway.adapter.in.kafka;
 
-import tools.jackson.databind.ObjectMapper;
 import kr.magicbox.ssegateway.adapter.in.kafka.event.PurchaseTokenIssuedKafkaEvent;
 import kr.magicbox.ssegateway.adapter.in.web.dto.response.SseNotificationResponse;
 import kr.magicbox.ssegateway.adapter.out.redis.RedisPubSubAdapter;
@@ -17,24 +16,19 @@ import org.springframework.stereotype.Component;
 public class PurchaseTokenKafkaListener {
 
     private final RedisPubSubAdapter redisPubSubAdapter;
-    private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = "sse.purchase-token-issued", groupId = "sse-gateway-service")
-    public void handlePurchaseTokenIssued(ConsumerRecord<String, String> record) {
-        PurchaseTokenIssuedKafkaEvent event;
-        try {
-            event = objectMapper.readValue(record.value(), PurchaseTokenIssuedKafkaEvent.class);
-        } catch (Exception e) {
-            log.error("purchase token 이벤트 역직렬화 실패: {}", record.value(), e);
-            return;
-        }
-
-        log.debug("purchase token 발급 이벤트 수신 releaseId={} userId={}", event.releaseId(), event.userId());
+    public void handlePurchaseTokenIssued(ConsumerRecord<String, PurchaseTokenIssuedKafkaEvent> record) {
+        PurchaseTokenIssuedKafkaEvent event = record.value();
+        log.info("[KAFKA→SSE] purchase token 이벤트 수신 releaseId={} userId={}", event.releaseId(), event.userId());
 
         SseNotificationResponse payload = SseNotificationResponse.builder()
                 .purchaseToken(event.purchaseToken())
                 .build();
 
-        redisPubSubAdapter.publishNotification(UserId.of(event.userId()), payload).subscribe();
+        redisPubSubAdapter.publishNotification(UserId.of(event.userId()), payload)
+                .doOnNext(count -> log.info("[KAFKA→SSE] Redis PUBLISH 완료 userId={} receivers={}", event.userId(), count))
+                .doOnError(e -> log.error("[KAFKA→SSE] Redis PUBLISH 실패 userId={}", event.userId(), e))
+                .subscribe();
     }
 }
