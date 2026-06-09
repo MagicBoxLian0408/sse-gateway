@@ -9,3 +9,4 @@ build
 *.ear
 !gradle/wrapper/gradle-wrapper.jar
 env
+.omc/
