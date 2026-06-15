@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/openjdk/jdk:21-ubuntu
+FROM eclipse-temurin:21-jre-jammy
 ARG JAR_FILE=build/libs/*.jar
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 WORKDIR /app
