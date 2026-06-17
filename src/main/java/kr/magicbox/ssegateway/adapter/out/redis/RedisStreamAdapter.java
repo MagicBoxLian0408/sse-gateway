@@ -10,13 +10,16 @@ import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Redis Stream 기반 SSE 알림 어댑터.
@@ -43,6 +46,7 @@ public class RedisStreamAdapter {
     private final ObjectMapper objectMapper;
 
     private final Map<Long, Disposable> subscriptions = new ConcurrentHashMap<>();
+    private final Map<String, AtomicReference<String>> lastIds = new ConcurrentHashMap<>();
 
     public void subscribe(UserId userId) {
         String notificationStream = NOTIFICATION_STREAM_PREFIX + userId.value();
@@ -94,11 +98,14 @@ public class RedisStreamAdapter {
     }
 
     private Flux<MapRecord<String, Object, Object>> readLatest(String stream) {
+        AtomicReference<String> lastId = lastIds.computeIfAbsent(stream, k -> new AtomicReference<>("$"));
+        StreamReadOptions options = StreamReadOptions.empty().block(Duration.ofSeconds(5));
         return reactiveRedisTemplate.opsForStream()
-                .read(StreamOffset.create(stream, ReadOffset.lastConsumed()))
+                .read(options, StreamOffset.create(stream, ReadOffset.from(lastId.get())))
+                .doOnNext(record -> lastId.set(record.getId().getValue()))
                 .onErrorResume(e -> {
                     log.warn("Redis Stream 읽기 오류 stream={}: {}", stream, e.getMessage());
-                    return Flux.empty();
+                    return Mono.delay(Duration.ofSeconds(1)).thenMany(Flux.empty());
                 });
     }
 
