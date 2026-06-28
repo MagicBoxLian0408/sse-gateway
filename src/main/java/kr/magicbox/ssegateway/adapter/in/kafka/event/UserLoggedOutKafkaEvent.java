@@ -9,4 +9,4 @@ import java.time.Instant;
 public record UserLoggedOutKafkaEvent(
         @JsonProperty("user_id") Long userId,
         @JsonProperty("occurred_at") Instant occurredAt
-) {}
+) implements InboxEvent {}
