@@ -3,7 +3,7 @@ package kr.magicbox.ssegateway.adapter.in.kafka;
 import kr.magicbox.ssegateway.adapter.in.kafka.annotation.Idempotent;
 import kr.magicbox.ssegateway.adapter.in.kafka.event.UserLoggedOutKafkaEvent;
 import kr.magicbox.ssegateway.adapter.out.persistence.repository.SseGatewayInboxRepository;
-import kr.magicbox.ssegateway.adapter.out.redis.RedisPubSubAdapter;
+import kr.magicbox.ssegateway.adapter.out.redis.RedisStreamAdapter;
 import kr.magicbox.ssegateway.domain.vo.UserId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,15 +18,16 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class LogoutKafkaListener {
 
-    private final RedisPubSubAdapter redisPubSubAdapter;
+    private final RedisStreamAdapter redisStreamAdapter;
     private final SseGatewayInboxRepository sseGatewayInboxRepository;
 
     @Idempotent
     @RetryableTopic
     @KafkaListener(topics = "outbox.event.user-logged-out", groupId = "sse-gateway-service")
     public void handleLogout(ConsumerRecord<String, UserLoggedOutKafkaEvent> record) {
-        log.debug("로그아웃 이벤트 수신, Redis logout 발행 userId={}", record.value().userId());
-        redisPubSubAdapter.publishLogout(UserId.of(record.value().userId())).subscribe();
+        UserLoggedOutKafkaEvent event = record.value();
+        log.debug("로그아웃 이벤트 수신, Redis Stream logout 적재 userId={}", event.userId());
+        redisStreamAdapter.appendLogout(UserId.of(event.userId())).subscribe();
     }
 
     @DltHandler
